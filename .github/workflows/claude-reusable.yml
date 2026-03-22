@@ -1,0 +1,81 @@
+name: Claude Code (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      max_turns:
+        type: number
+        default: 200
+      model:
+        type: string
+        default: 'us.anthropic.claude-sonnet-4-6'
+      label_trigger:
+        type: string
+        default: 'claude'
+    secrets:
+      APP_ID:
+        required: true
+      APP_PRIVATE_KEY:
+        required: true
+      AWS_ROLE_TO_ASSUME:
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  claude:
+    if: |
+      github.event.sender.type != 'Bot' &&
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))) ||
+        (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == inputs.label_trigger)
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone custom skills
+        run: |
+          git clone --depth 1 https://github.com/longwind48/claude-skills.git /tmp/claude-skills
+          mkdir -p .claude/skills
+          cp -r /tmp/claude-skills/skills/* .claude/skills/
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          use_bedrock: "true"
+          label_trigger: ${{ inputs.label_trigger }}
+          claude_args: '--model ${{ inputs.model }} --max-turns ${{ inputs.max_turns }}'
+          plugin_marketplaces: |
+            https://github.com/Sushegaad/Claude-Skills-Governance-Risk-and-Compliance.git
+            https://github.com/antonbabenko/terraform-skill.git
+            https://github.com/hashicorp/agent-skills.git
+          plugins: |
+            iso27001@grc-skills
+            terraform-skill@antonbabenko
+            terraform-code-generation@hashicorp
