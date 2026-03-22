@@ -91,3 +91,4 @@ jobs:
             iso27001@grc-skills
             terraform-skill@antonbabenko
             terraform-code-generation@hashicorp
+          display_report: "true"
