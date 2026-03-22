@@ -89,6 +89,10 @@ jobs:
             https://github.com/hashicorp/agent-skills.git
           plugins: |
             iso27001@grc-skills
+            soc2@grc-skills
+            fedramp@grc-skills
+            gdpr-compliance@grc-skills
+            hipaa-compliance@grc-skills
             terraform-skill@antonbabenko
             terraform-code-generation@hashicorp
           display_report: "true"
