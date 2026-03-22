@@ -70,7 +70,19 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
           use_bedrock: "true"
           label_trigger: ${{ inputs.label_trigger }}
-          claude_args: '--model ${{ inputs.model }} --max-turns ${{ inputs.max_turns }}'
+          claude_args: |
+            --model ${{ inputs.model }} --max-turns ${{ inputs.max_turns }}
+            --allowedTools "Bash(aws *),Bash(gh issue *),Bash(gh pr *),Bash(gh label *)"
+          settings: |
+            {
+              "env": {
+                "AWS_ACCESS_KEY_ID": "${{ env.AWS_ACCESS_KEY_ID }}",
+                "AWS_SECRET_ACCESS_KEY": "${{ env.AWS_SECRET_ACCESS_KEY }}",
+                "AWS_SESSION_TOKEN": "${{ env.AWS_SESSION_TOKEN }}",
+                "AWS_REGION": "us-east-1",
+                "GH_TOKEN": "${{ steps.app-token.outputs.token }}"
+              }
+            }
           plugin_marketplaces: |
             https://github.com/Sushegaad/Claude-Skills-Governance-Risk-and-Compliance.git
             https://github.com/antonbabenko/terraform-skill.git
